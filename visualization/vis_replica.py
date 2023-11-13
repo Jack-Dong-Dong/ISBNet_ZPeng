@@ -2,10 +2,9 @@ import numpy as np
 import torch
 
 import argparse
-import os
 import os.path as osp
 import pyviz3d.visualizer as viz
-
+from isbnet.util import rle_decode
 
 COLOR_DETECTRON2 = (
     np.array(
@@ -227,23 +226,10 @@ COLOR_DETECTRON2 = (
     * 255
 )
 
-CLASS_LABELS_STPLS3D = (
-    "background",
-    "building",
-    "low vegetation",
-    "med. vegetation",
-    "high vegetation",
-    "vehicle",
-    "truck",
-    "aircraft",
-    "militaryVehicle",
-    "bike",
-    "motorcycle",
-    "light pole",
-    "street sign",
-    "clutter",
-    "fence",
-)
+CLASS_LABELS_S3DIS = ["basket", "bed", "bench", "bin", "blanket", "blinds", "book", "bottle", "box", "bowl", "camera", "cabinet", "candle", "chair", "clock",
+"cloth", "comforter", "cushion", "desk", "desk-organizer", "door", "indoor-plant", "lamp", "monitor", "nightstand",
+"panel", "picture", "pillar", "pillow", "pipe", "plant-stand", "plate", "pot", "sculpture", "shelf", "sofa", "stool", "switch", "table",
+"tablet", "tissue-paper", "tv-screen", "tv-stand", "vase", "vent", "wall-plug", "window", "rug"]
 
 COLOR_MAP = {
     0: (0.0, 0.0, 0.0),
@@ -287,39 +273,69 @@ COLOR_MAP = {
     40: (100.0, 85.0, 144.0),
 }
 
-SEMANTIC_IDX2NAME = {k: v for k, v in enumerate(CLASS_LABELS_STPLS3D)}
+SEMANTIC_IDX2NAME = {
+    0: "unannotated",
+    1: "ceiling",
+    2: "floor",
+    3: "wall",
+    4: "beam",
+    5: "column",
+    6: "window",
+    7: "door",
+    8: "chair",
+    9: "table",
+    10: "bookcase",
+    11: "sofa",
+    12: "board",
+    13: "clutter",
+}
+
+
+COLOR_MAP_NEW = {}
+
+c = 0
+for k,v in COLOR_MAP.items():
+    COLOR_MAP_NEW[c] = v
+    c += 1
 
 
 def get_pred_color(scene_name, mask_valid, dir):
-    instance_file = osp.join(dir, "pred_instance", scene_name + ".txt")
+    instance_file = f"results/cls_agnostic_replica_scannet200/{scene_name}.pth"
 
-    f = open(instance_file, "r")
-    masks = f.readlines()
-    masks = [mask.rstrip().split() for mask in masks]
+    
+    data = torch.load(instance_file)
+    masks = np.stack([rle_decode(m) for m in data['ins']], axis=0)
+    
+    scores = data['conf'].numpy()
+    # f = open(instance_file, "r")
+    # masks = f.readlines()
+    # masks = [mask.rstrip().split() for mask in masks]
     inst_label_pred_rgb = np.zeros((mask_valid.sum(), 3))  # np.ones(rgb.shape) * 255 #
 
+    # breakpoint()
     # FIXME
     ins_num = len(masks)
     ins_pointnum = np.zeros(ins_num)
     inst_label = -100 * np.ones(mask_valid.sum()).astype(np.int)
 
     # sort score such that high score has high priority for visualization
-    scores = np.array([float(x[-1]) for x in masks])
+    # scores = np.array([float(x[-1]) for x in masks])
     sort_inds = np.argsort(scores)[::-1]
     for i_ in range(len(masks) - 1, -1, -1):
         i = sort_inds[i_]
         # mask_path = os.path.join(opt.prediction_path, "pred_instance", masks[i][0])
-        mask_path = osp.join(dir, "pred_instance", masks[i][0])
-        assert osp.isfile(mask_path), mask_path
-        if float(masks[i][2]) < 0.1:
-            continue
+        # mask_path = osp.join(dir, "pred_instance", masks[i][0])
+        # assert osp.isfile(mask_path), mask_path
+        # if float(masks[i][2]) < 0.1:
+        #     continue
 
-        mask = np.loadtxt(mask_path).astype(np.int)
+        # mask = np.loadtxt(mask_path).astype(np.int)
+        mask = masks[i]
         mask = mask[mask_valid]
 
-        cls = SEMANTIC_IDX2NAME[int(masks[i][1])]
+        # cls = SEMANTIC_IDX2NAME[int(masks[i][1]) - 1]
 
-        print("{} {}: {} pointnum: {}".format(i, masks[i], cls, mask.sum()))
+        # print("{} {}: {} pointnum: {}".format(i, masks[i], cls, mask.sum()))
         ins_pointnum[i] = mask.sum()
         inst_label[mask == 1] = i
 
@@ -332,13 +348,13 @@ def get_pred_color(scene_name, mask_valid, dir):
 
 
 def main():
-    parser = argparse.ArgumentParser("STPLS3D-Vis")
+    parser = argparse.ArgumentParser("S3DIS-Vis")
 
-    parser.add_argument("--data_root", type=str, default="dataset/stpls3d")
-    parser.add_argument("--scene_name", type=str, default="5_points_GTv3_00")
-    parser.add_argument("--split", type=str, default="val")
+    parser.add_argument("--data_root", type=str, default="dataset/replica")
+    parser.add_argument("--scene_name", type=str, default="office2")
+    parser.add_argument("--split", type=str, default="replica_3d")
     parser.add_argument(
-        "--prediction_path", help="path to the prediction results", default="results/isbnet_stpls3d_val"
+        "--prediction_path", help="path to the prediction results", default="results/s3dis_area5_hardfilter_spp"
     )
     parser.add_argument("--point_size", type=float, default=15.0)
     parser.add_argument(
@@ -352,21 +368,34 @@ def main():
     v = viz.Visualizer()
 
     if args.task == "all":
-        vis_tasks = ["input", "sem_gt", "inst_gt", "superpoint" "inst_pred"]
+        vis_tasks = ["input", "sem_gt", "inst_gt", "superpoint", "inst_pred"]
     else:
         vis_tasks = [args.task]
 
+    # print(COLOR_MAP_NEW)
+
     xyz, rgb, semantic_label, instance_label = torch.load(
-        f"{args.data_root}/{args.split}/{args.scene_name}_inst_nostuff.pth"
+        f"{args.data_root}/{args.split}/{args.scene_name}.pth"
     )
     xyz = xyz.astype(np.float32)
     rgb = rgb.astype(np.float32)
-    semantic_label = semantic_label.astype(np.int)
-    instance_label = instance_label.astype(np.int)
+    semantic_label = semantic_label.astype(int)
+    instance_label = instance_label.astype(int)
 
-    rgb = (rgb + 1.0) * 127.5
+    # inds = np.arange(xyz.shape[0])[::2]
+    # inds = np.random.choice(np.arange(xyz.shape[0]), size = int(xyz.shape[0]/2))
+    # xyz = xyz[inds]
+    # rgb = rgb[inds]
+    # semantic_label = semantic_label[inds]
+    # instance_label = instance_label[inds]
 
-    mask_valid = semantic_label != -100
+    xyz = xyz - np.min(xyz, axis=0)
+    rgb = (rgb + 1) * 255.0
+
+    print(xyz.shape)
+
+    # mask_valid = semantic_label != -100
+    mask_valid = np.ones_like(semantic_label).astype(bool)
     xyz = xyz[mask_valid]
     rgb = rgb[mask_valid]
     semantic_label = semantic_label[mask_valid]
@@ -381,8 +410,8 @@ def main():
         for i, sem in enumerate(sem_unique):
             if sem == -100:
                 continue
-            remap_sem_id = sem + 1
-            color_ = COLOR_MAP[remap_sem_id]
+            # remap_sem_id = sem + 1
+            color_ = COLOR_DETECTRON2[sem]
             sem_label_rgb[semantic_label == sem] = color_
 
         v.add_points(f"sem_gt", xyz, sem_label_rgb, point_size=args.point_size)
@@ -398,8 +427,7 @@ def main():
         v.add_points(f"inst_gt", xyz, inst_label_rgb, point_size=args.point_size)
 
     if "superpoint" in vis_tasks:
-        # NOTE currently STPLS3D does not have superpoint
-        spp = np.arange((mask_valid.shape[0]), dtype=np.long)
+        spp = torch.load(f"{args.data_root}/replica_spp_new/{args.scene_name}.pth")
         spp = spp[mask_valid]
         superpoint_rgb = np.zeros_like(rgb)
         unique_spp = np.unique(spp)

@@ -1,19 +1,21 @@
 import numpy as np
 import torch
 from scipy.spatial import KDTree
+from tqdm import tqdm
 
 import configargparse
 import glob
 import natsort
 import os
 import sys
+import datetime
 
 
 sys.path.append(".")
 
 parser = configargparse.ArgumentParser()
 parser.add_argument(
-    "--data_dir", type=str, default="./data/Stanford3dDataset_v1.2_Aligned_Version/", help="Path to the original data"
+    "--data_dir", type=str, default="/home/pengzhen/code/pointcloud_dataset_set/dataset/s3dis/Stanford3dDataset_v1.2_Aligned_Version", help="Path to the original data"
 )
 
 S3DIS_SEMANTICS_COLORS = np.array(
@@ -60,10 +62,11 @@ for i in range(13):
     NAME2ID[ID2NAME[i]] = i
 
 
-def get_labels(scene_name, scene_data, data_dir):
+def get_labels(scene_name, scene_data, data_dir, log_file_name):
     area = scene_name.split(".")[0]
     name = scene_name.split(".")[1]
     instance_pths = glob.glob(data_dir + "/" + area + "/" + name + "/Annotations/*.txt")
+    # print('instance_pths', instance_pths)
 
     scene_pts = scene_data[:, :3]  # Scene point cloud
     pt_tree = KDTree(scene_pts)
@@ -80,6 +83,12 @@ def get_labels(scene_name, scene_data, data_dir):
                 class_name = "clutter"
         semantic_id = NAME2ID[class_name]
         # Load instance point cloud
+
+        # save logs
+        with open('./logs/' + log_file_name, 'a', encoding='utf-8') as log_file:
+            log_line = f"--instances_path---{pth}--\n"
+            log_file.write(log_line)
+
         instance_data = np.loadtxt(pth)
         instance_pts = instance_data[:, :3]
         # instance_colors = instance_data[:, 3:]
@@ -118,40 +127,71 @@ def read_scene_txt(name, data_dir):
     name = name.split(".")[1]
 
     pts = np.loadtxt(os.path.join(data_dir + "/" + area, name, name + ".txt"))
+
     return pts
 
 
 def preprocess_s3dis(data_dir):
+    if not os.path.exists('./logs'):
+        os.makedirs('./logs')
+
+    now = datetime.datetime.now()
+    timestamp = now.strftime("%Y%m%d_%H%M%S")
+    log_file_name = f"s3dis_prepare_data_{timestamp}.log"
+
+    with open('./logs/' + log_file_name, 'a', encoding='utf-8') as log_file:
+        log_line = f"-----处理项目: S3DIS数据预处理-----\n"
+        log_file.write(log_line)
+    
     scene_list = []
     for i in range(1, 7):
         area = data_dir + "/Area_" + str(i)
         tmp = glob.glob(area + "/*")
         for scene_name in tmp:
             scene_name = scene_name.split("/")[-2] + "." + scene_name.split("/")[-1]
-            scene_list.append(scene_name)
+            if '.txt' in scene_name:
+                continue
+            else:
+                scene_list.append(scene_name)
 
     scene_list = natsort.natsorted(scene_list)
 
-    for scene_name in scene_list:
+    save_dir_list = glob.glob("/home/pengzhen/code/pointcloud_dataset_set/dataset/s3dis/ISBNet_preprocess/*")
+
+    for scene_name in tqdm(scene_list, position=0):
+
+        with open('./logs/' + log_file_name, 'a', encoding='utf-8') as log_file:
+            log_line = f"----{now.strftime('%Y-%m-%d %H:%M:%S')} - 处理目录: {scene_name}-----\n"
+            log_file.write(log_line)
+
         area = scene_name.split(".")[0]
         name = scene_name.split(".")[1]
-        save_dir = "dataset/s3dis/preprocess"
+        save_dir = "/home/pengzhen/code/pointcloud_dataset_set/dataset/s3dis/ISBNet_preprocess"
         scene_pth = os.path.join(save_dir, f"{area}_{name}_inst_nostuff")
+        if scene_pth in save_dir_list:
+            with open('./logs/' + log_file_name, 'a', encoding='utf-8') as log_file:
+                log_line = f"----{now.strftime('%Y-%m-%d %H:%M:%S')} - 处理目录: {scene_name}-aleady----\n"
+                log_file.write(log_line)
+        else: 
+            os.makedirs(save_dir, exist_ok=True)
 
-        os.makedirs(save_dir, exist_ok=True)
+            scene_data = read_scene_txt(scene_name, data_dir)
+            instances, semantics = get_labels(scene_name, scene_data, data_dir, log_file_name)
 
-        scene_data = read_scene_txt(scene_name, data_dir)
-        instances, semantics = get_labels(scene_name, scene_data, data_dir)
+            torch.save(
+                (
+                    scene_data[:, :3].astype(np.float32),
+                    scene_data[:, 3:6].astype(np.float32),
+                    semantics.reshape(-1).astype(np.int32),
+                    instances.reshape(-1).astype(np.int32),
+                ),
+                scene_pth,
+            )
 
-        torch.save(
-            (
-                scene_data[:, :3].astype(np.float32),
-                scene_data[:, 3:6].astype(np.float32),
-                semantics.reshape(-1).astype(np.int32),
-                instances.reshape(-1).astype(np.int32),
-            ),
-            scene_pth,
-        )
+
+    with open('./logs/' + log_file_name, 'a', encoding='utf-8') as log_file:
+            log_line = f"----{now.strftime('%Y-%m-%d %H:%M:%S')} ------done-----\n"
+            log_file.write(log_line)
 
 
 cfg = parser.parse_args()
