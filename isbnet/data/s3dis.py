@@ -52,16 +52,18 @@ class S3DISDataset(CustomDataset):
             inds = np.random.choice(N, int(N * 0.25), replace=False)
             xyz = xyz[inds]
             rgb = rgb[inds]
-            # spp = spp[inds]
+            
+            spp = spp[inds]
 
-            # spp = np.unique(spp, return_inverse=True)[1]
+            spp = np.unique(spp, return_inverse=True)[1]
 
             semantic_label = semantic_label[inds]
             instance_label = self.getCroppedInstLabel(instance_label, inds)
 
-            # 确保spp数组的大小与inds中的索引匹配
-            spp_unique, spp_inverse = np.unique(spp, return_inverse=True)
-            spp = spp_inverse[inds]
+            # # 确保spp数组的大小与inds中的索引匹配
+            # inds = np.clip(inds, 0, spp.shape[0] - 1)
+            # spp_unique, spp_inverse = np.unique(spp, return_inverse=True)
+            # spp = spp_inverse[inds]
 
         elif N > 5000000:  # NOTE Avoid OOM
             print(f"Downsample scene {scan_id} with original num_points: {N}")
@@ -71,7 +73,7 @@ class S3DISDataset(CustomDataset):
             rgb = rgb[inds]
             spp = spp[inds]
 
-            spp = np.unique(spp, return_inverse=True)[1]
+            # spp = np.unique(spp, return_inverse=True)[1]
 
             semantic_label = semantic_label[inds]
             instance_label = self.getCroppedInstLabel(instance_label, inds)

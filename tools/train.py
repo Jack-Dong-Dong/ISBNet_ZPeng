@@ -33,6 +33,7 @@ from isbnet.util import (
 
 np.random.seed(0)
 torch.manual_seed(0)
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
 
 def get_args():

@@ -1,20 +1,21 @@
 import os
 import numpy as np
 import torch
+from tqdm import tqdm
 
 import glob
 
 root_path = '/home/pengzhen/code/pointcloud_dataset_set/dataset/s3dis'
 
-files = sorted(glob.glob(os.path.join(root_path, "learned_superpoint_graph_segmentations/*.npy")))
+files = sorted(glob.glob(os.path.join(root_path, "old_learned_superpoint_graph_segmentations/*.npy")))
 
-for file in files:
+for file in tqdm(files, position=0):
     chunks = file.split("/")[-1].split(".")
     area = chunks[0]
     room = chunks[1]
 
     spp = np.load(file, allow_pickle=True).item()["segments"]
-
+    
     if not os.path.exists(os.path.join(root_path, "ISBNet_superpoints")):
         os.makedirs(os.path.join(root_path, "ISBNet_superpoints"))
 
