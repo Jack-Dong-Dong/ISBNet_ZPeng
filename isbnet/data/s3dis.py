@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 import os.path as osp
-from glob import glob
+import glob
 from ..ops import voxelization_idx
 from .custom import CustomDataset
 
@@ -31,7 +31,8 @@ class S3DISDataset(CustomDataset):
             self.prefix = [self.prefix]
         filenames_all = []
         for p in self.prefix:
-            filenames = glob(osp.join(self.data_root, "preprocess", p + "*" + self.suffix))
+            filenames = glob.glob(osp.join(self.data_root, "ISBNet_preprocess", p + "*" + self.suffix))
+            # print('filepath', osp.join(self.data_root, "ISBNet_preprocess", p + "*" + self.suffix), 'filenames', filenames)
             assert len(filenames) > 0, f"Empty {p}"
             filenames_all.extend(filenames)
 
@@ -43,7 +44,7 @@ class S3DISDataset(CustomDataset):
 
         xyz, rgb, semantic_label, instance_label = torch.load(filename)
 
-        spp_filename = osp.join(self.data_root, "superpoints", scan_id + ".pth")
+        spp_filename = osp.join(self.data_root, "ISBNet_superpoints", scan_id + '.pth')
         spp = torch.load(spp_filename)
 
         N = xyz.shape[0]
@@ -51,12 +52,17 @@ class S3DISDataset(CustomDataset):
             inds = np.random.choice(N, int(N * 0.25), replace=False)
             xyz = xyz[inds]
             rgb = rgb[inds]
-            spp = spp[inds]
+            # spp = spp[inds]
 
-            spp = np.unique(spp, return_inverse=True)[1]
+            # spp = np.unique(spp, return_inverse=True)[1]
 
             semantic_label = semantic_label[inds]
             instance_label = self.getCroppedInstLabel(instance_label, inds)
+
+            # 确保spp数组的大小与inds中的索引匹配
+            spp_unique, spp_inverse = np.unique(spp, return_inverse=True)
+            spp = spp_inverse[inds]
+
         elif N > 5000000:  # NOTE Avoid OOM
             print(f"Downsample scene {scan_id} with original num_points: {N}")
             inds = np.arange(N)[::4]

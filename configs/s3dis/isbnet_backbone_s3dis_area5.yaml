@@ -33,36 +33,36 @@ model:
 data:
   train:
     type: 's3dis'
-    data_root: 'code/pointcloud_dataset_set/dataset/s3dis/'
+    data_root: '/home/pengzhen/code/pointcloud_dataset_set/dataset/s3dis/'
     prefix: ['Area_1', 'Area_2', 'Area_3', 'Area_4', 'Area_6']
-    suffix: '_inst_nostuff.pth'
+    suffix: '_inst_nostuff'
     repeat: 20
     training: True
     voxel_cfg:
       scale: 50
       spatial_shape: [128, 512]
-      max_npoint: 25000
+      max_npoint: 10000
       min_npoint: 2500
   test:
     type: 's3dis'
-    data_root: 'code/pointcloud_dataset_set/dataset/s3dis/'
+    data_root: '/home/pengzhen/code/pointcloud_dataset_set/dataset/s3dis/'
     prefix: 'Area_5'
-    suffix: '_inst_nostuff.pth'
+    suffix: '_inst_nostuff'
     training: False
     voxel_cfg:
       scale: 50
       spatial_shape: [128, 512]
-      max_npoint: 25000
+      max_npoint: 10000
       min_npoint: 2500
 
 
 dataloader:
   train:
     batch_size: 2
-    num_workers: 1
+    num_workers: 0
   test:
-    batch_size: 1
-    num_workers: 1
+    batch_size: 2
+    num_workers: 0
 
 optimizer:
   type: 'AdamW'
