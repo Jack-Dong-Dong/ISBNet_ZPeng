@@ -17,7 +17,7 @@ model:
     n_sample_pa1: 2048
     n_queries: 256
     radius_scale: 1
-    radius: 0.4
+    radius: 0.2
     neighbor: 32
   test_cfg:
     x4_split: True
@@ -39,10 +39,10 @@ data:
     repeat: 20
     training: True
     voxel_cfg:
-      scale: 50
+      scale: 40
       spatial_shape: [128, 512]
-      max_npoint: 50000
-      min_npoint: 2500
+      max_npoint: 250000
+      min_npoint: 5000
   test:
     type: 's3dis'
     data_root: '/home/pengzhen/code/pointcloud_dataset_set/dataset/s3dis/'
@@ -50,18 +50,18 @@ data:
     suffix: '_inst_nostuff'
     training: False
     voxel_cfg:
-      scale: 50
+      scale: 40
       spatial_shape: [128, 512]
-      max_npoint: 50000
-      min_npoint: 2500
+      max_npoint: 250000
+      min_npoint: 5000
 
 
 dataloader:
   train:
-    batch_size: 4
+    batch_size: 8
     num_workers: 0
   test:
-    batch_size: 1
+    batch_size: 4
     num_workers: 0
 
 optimizer:
@@ -78,10 +78,10 @@ save_cfg:
   object_conditions: False
 
 fp16: False
-epochs: 80
-step_epoch: 30
+epochs: 100
+step_epoch: 10
 save_freq: 4
-pretrain: '' # We can load pretrain of ScanNetV2 or train from scratch
+pretrain: '/home/pengzhen/code/instanceSeg/ISBNet/work_dirs/s3dis/isbnet_backbone_s3dis_area5/default/latest.pth' # We can load pretrain of ScanNetV2 or train from scratch
 work_dir: ''
 
-# best weight: pretrains/best_baseline.pth
+best weight: '/home/pengzhen/code/instanceSeg/ISBNet/work_dirs/s3dis/isbnet_backbone_s3dis_area5/default/latest.pth'
