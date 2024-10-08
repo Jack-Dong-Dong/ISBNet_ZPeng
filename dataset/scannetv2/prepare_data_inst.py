@@ -3,7 +3,7 @@ earch/SparseConvNet/blob/master/examples/ScanNet/prepare_data.py."""
 
 import numpy as np
 import plyfile
-import scannet_util
+from .scannet_util import g_raw2scannetv2
 
 # import segmentator
 import torch
@@ -76,12 +76,12 @@ def f(fn):
         d = json.load(jsondata)
         for x in d["segGroups"]:
             if (
-                scannet_util.g_raw2scannetv2[x["label"]] != "wall"
-                and scannet_util.g_raw2scannetv2[x["label"]] != "floor"
+                g_raw2scannetv2[x["label"]] != "wall"
+                and g_raw2scannetv2[x["label"]] != "floor"
             ):
                 instance_segids.append(x["segments"])
                 labels.append(x["label"])
-                assert x["label"] in scannet_util.g_raw2scannetv2.keys()
+                assert x["label"] in g_raw2scannetv2.keys()
     if (
         fn == "val/scene0217_00_vh_clean_2.ply"
         and instance_segids[0] == instance_segids[int(len(instance_segids) / 2)]
