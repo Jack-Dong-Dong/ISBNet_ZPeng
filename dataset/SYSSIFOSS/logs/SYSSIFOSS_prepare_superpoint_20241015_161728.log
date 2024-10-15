@@ -1,0 +1,9 @@
+-----处理项目: SYSSIFOSS superpoint预处理-----
+----2024-10-15 16:17:28 - 处理目录: KA10-----
+--superpoint_path---/home/pengzhen/code/pointcloud_dataset_set/dataset/SYSSIFOSS/ISBNet_meshfile/KA10_meshfile.ply--
+----2024-10-15 16:17:28 - 处理目录: SP02-----
+--superpoint_path---/home/pengzhen/code/pointcloud_dataset_set/dataset/SYSSIFOSS/ISBNet_meshfile/SP02_meshfile.ply--
+----2024-10-15 16:17:28 - 处理目录: BR06-----
+--superpoint_path---/home/pengzhen/code/pointcloud_dataset_set/dataset/SYSSIFOSS/ISBNet_meshfile/BR06_meshfile.ply--
+----2024-10-15 16:17:28 - 处理目录: BR03-----
+--superpoint_path---/home/pengzhen/code/pointcloud_dataset_set/dataset/SYSSIFOSS/ISBNet_meshfile/BR03_meshfile.ply--

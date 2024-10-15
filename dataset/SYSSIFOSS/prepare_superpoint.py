@@ -24,7 +24,7 @@ def get_superpoint(mesh_file, log_file_name):
     with open('./logs/' + log_file_name, 'a', encoding='utf-8') as log_file:
         log_line = f"--superpoint_path---{mesh_file}--\n"
         log_file.write(log_line)
-    
+
     mesh = o3d.io.read_triangle_mesh(mesh_file)
     vertices = torch.from_numpy(np.array(mesh.vertices).astype(np.float32))
     faces = torch.from_numpy(np.array(mesh.triangles).astype(np.int64))
@@ -35,7 +35,7 @@ def get_superpoint(mesh_file, log_file_name):
 
 
 def prepare_superpoint(data_dir):
-    preprocess_dir = os.path.join(data_dir, "ISBNet_mesh_file")
+    preprocess_dir = os.path.join(data_dir, "ISBNet_meshfile")
     superpoint_dir = os.path.join(data_dir, "ISBNet_superpoint")
 
     if not os.path.exists(preprocess_dir):
@@ -55,9 +55,10 @@ def prepare_superpoint(data_dir):
     if not os.path.exists(superpoint_dir):
         os.makedirs(superpoint_dir)
     save_dir_list = glob.glob(superpoint_dir + "/*")
-    
+
     preprocess_data_lists = glob.glob(preprocess_dir + "/*")
-    for preprocess_data in preprocess_data_lists:
+    preprocess_data_lists = natsort.natsorted(preprocess_data_lists)
+    for preprocess_data in tqdm(preprocess_data_lists, position=0):
 
         print('------------preprocess_data:', preprocess_data, '----------------')
         scene_name = preprocess_data.split("/")[-1].split("_")[0]
@@ -71,13 +72,12 @@ def prepare_superpoint(data_dir):
             with open('./logs/' + log_file_name, 'a', encoding='utf-8') as log_file:
                 log_line = f"----{now.strftime('%Y-%m-%d %H:%M:%S')} - 处理目录: {scene_name}-aleady----\n"
                 log_file.write(log_line)
-        else: 
+        else:
             os.makedirs(superpoint_dir, exist_ok=True)
 
             spp = get_superpoint(preprocess_data, log_file_name)
-            spp = spp.numpy()
 
-            torch.save(spp, os.path.join(preprocess_dir, f"{scene_name}_superpoint.pth"))
+            torch.save(spp, os.path.join(superpoint_dir, f"{scene_name}_superpoint.pth"))
 
 cfg = parser.parse_args()
 prepare_superpoint(cfg.data_dir)
