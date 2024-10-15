@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from scipy.spatial import KDTree
 from tqdm import tqdm
+import open3d as o3d
 
 import configargparse
 import glob
@@ -15,8 +16,7 @@ sys.path.append(".")
 
 parser = configargparse.ArgumentParser()
 parser.add_argument(
-    "--data_dir", type=str, default="/home/pengzhen/code/pointcloud_dataset_set/dataset/SYSSIFOSS", help="Path to the original data"
-    # "--data_dir", type=str, default="/home/pengzhen/code/pointcloud_dataset_set/dataset/s3dis/Stanford3dDataset_v1.2_Aligned_Version", help="Path to the original data"
+    "--data_dir", type=str, default="/home/pengzhen/code/pointcloud_dataset_set/dataset/s3dis/Stanford3dDataset_v1.2_Aligned_Version", help="Path to the original data"
 )
 
 list_of_species_colors = np.array([

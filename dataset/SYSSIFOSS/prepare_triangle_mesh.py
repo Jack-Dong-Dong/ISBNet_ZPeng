@@ -21,22 +21,24 @@ parser.add_argument(
 )
 
 def set_meshfile(mesh_file):
-    
-    print('------------load mesh_file from:', mesh_file, '----------------') 
-    label = torch.load(mesh_file)
-    xyz = np.array(label[0])
-    colors = np.array(label[1])
-    print('------------init pcd','----------------') 
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(xyz)
-    # 内存不足考虑忽略颜色
+
+    print('------------load mesh_file from:', mesh_file, '----------------')
+    # label = torch.load(mesh_file)
+    # xyz = np.array(label[0])
+    # colors = np.array(label[1])
+    print('------------init pcd','----------------')
+    pcd = o3d.io.read_point_cloud('/home/pengzhen/code/pointcloud_dataset_set/ISBNet_meshfile/BR01.ply')
+    # pcd = o3d.geometry.PointCloud()
+    # pcd.points = o3d.utility.Vector3dVector(xyz)
     # pcd.colors = o3d.utility.Vector3dVector(colors / 255.0)
     pcd.estimate_normals()
-    print('------------computing----------------') 
+    print('------------computing----------------')
+    # pcd.voxel_down_sample(voxel_size=0.5)
+    # return pcd
     distances = pcd.compute_nearest_neighbor_distance()
     avg_dist = np.mean(distances)
     radius = 1.5 * avg_dist
-    print('-------------- creat ----------------') 
+    print('-------------- creat ----------------')
     mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_ball_pivoting(pcd, o3d.utility.DoubleVector([radius, radius * 2]))
     return mesh
 
@@ -50,16 +52,20 @@ def prepare_superpoint(data_dir):
 
     if not os.path.exists(meshfile_dir):
         os.makedirs(meshfile_dir)
-    
-    preprocess_data_lists = glob.glob(preprocess_dir + "/*")
-    for preprocess_data in preprocess_data_lists:
-        os.makedirs(meshfile_dir, exist_ok=True)
-        scene_name = preprocess_data.split("/")[-1].split("_")[0]
-        print(scene_name)
 
-        msehfile = set_meshfile(preprocess_data)
-        print('------------save mesh_file to:', meshfile_dir + "/" + scene_name + ".ply", '----------------') 
-        o3d.io.write_triangle_mesh(meshfile_dir + "/" + scene_name + ".ply", msehfile)
+    msehfile = set_meshfile('')
+    o3d.io.write_triangle_mesh(meshfile_dir + "/" + "2.ply", msehfile)
+
+    # preprocess_data_lists = glob.glob(preprocess_dir + "/*")
+    # for preprocess_data in preprocess_data_lists:
+    #     os.makedirs(meshfile_dir, exist_ok=True)
+    #     scene_name = preprocess_data.split("/")[-1].split("_")[0]
+    #     print(scene_name)
+    #
+    #     msehfile = set_meshfile(preprocess_data)
+    #     print('------------save mesh_file to:', meshfile_dir + "/" + scene_name + ".ply", '----------------')
+    #     # o3d.io.write_point_cloud(meshfile_dir + "/" + scene_name + ".ply", msehfile)
+    #     o3d.io.write_triangle_mesh(meshfile_dir + "/" + scene_name + "2.ply", msehfile)
 
 cfg = parser.parse_args()
 prepare_superpoint(cfg.data_dir)
